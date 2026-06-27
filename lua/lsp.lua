@@ -11,57 +11,45 @@ vim.lsp.enable({
 vim.opt.autocomplete = true
 vim.opt.completeopt = { "menuone", "noselect", "popup", "fuzzy" }
 
-local kind_icons = {
-  Text = "",
-  Method = "󰆧",
-  Function = "󰊕",
-  Constructor = "",
-  Field = "󰇽",
-  Variable = "󰂡",
-  Class = "󰠱",
-  Interface = "",
-  Module = "",
-  Property = "󰜢",
-  Unit = "",
-  Value = "󰎠",
-  Enum = "",
-  Keyword = "󰌋",
-  Snippet = "",
-  Color = "󰏘",
-  File = "󰈙",
-  Reference = "",
-  Folder = "󰉋",
-  EnumMember = "",
-  Constant = "󰏿",
-  Struct = "",
-  Event = "",
-  Operator = "󰆕",
-  TypeParameter = "󰅲",
-}
+-- local kind_icons = {
+--   Text = "",
+--   Method = "󰆧",
+--   Function = "󰊕",
+--   Constructor = "",
+--   Field = "󰇽",
+--   Variable = "󰂡",
+--   Class = "󰠱",
+--   Interface = "",
+--   Module = "",
+--   Property = "󰜢",
+--   Unit = "",
+--   Value = "󰎠",
+--   Enum = "",
+--   Keyword = "󰌋",
+--   Snippet = "",
+--   Color = "󰏘",
+--   File = "󰈙",
+--   Reference = "",
+--   Folder = "󰉋",
+--   EnumMember = "",
+--   Constant = "󰏿",
+--   Struct = "",
+--   Event = "",
+--   Operator = "󰆕",
+--   TypeParameter = "󰅲",
+-- }
 
 vim.api.nvim_create_autocmd("LspAttach", {
-  group = vim.api.nvim_create_augroup("UserLspConfig", {}),
+  group = vim.api.nvim_create_augroup("lsp_completion", { clear = true }),
   callback = function(ev)
-    local client = vim.lsp.get_client_by_id(ev.data.client_id)
-    if not client then
+    local client_id = ev.data.client_id
+    if not client_id then
       return
     end
-    vim.bo[ev.buf].omnifunc = "v:lua.vim.lsp.omnifunc"
-    if client:supports_method("textDocument/completion") then
-      vim.lsp.completion.enable(true, client.id, ev.buf, {
-        autotrigger = true,
-        convert = function(item)
-          local kind = vim.lsp.protocol.CompletionItemKind[item.kind] or "Text"
-          local icon = kind_icons[kind] or ""
-          return {
-            word = item.insertText or item.label,
-            abbr = item.label,
-            kind = icon .. " " .. kind,
-            menu = "[LSP]",
-            info = item.detail or item.documentation,
-          }
-        end,
-      })
+
+    local client = vim.lsp.get_client_by_id(client_id)
+    if client and client:supports_method("textDocument/completion") then
+      vim.lsp.completion.enable(true, client_id, ev.buf, { autotrigger = true })
     end
     local opts = { buffer = ev.buf, noremap = true, silent = true }
     vim.keymap.set("n", "gd", vim.lsp.buf.declaration, opts)
@@ -82,10 +70,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
     end, opts)
   end,
 })
-
-vim.keymap.set("i", "<C-Space>", function()
-  vim.lsp.completion.get()
-end, { desc = "Trigger LSP completion" })
+vim.api.nvim_create_autocmd("InsertCharPre", { callback = vim.lsp.completion.get })
 
 vim.keymap.set("i", "<Tab>", function()
   return vim.fn.pumvisible() == 1 and "<C-n>" or "<Tab>"
